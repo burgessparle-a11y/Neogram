@@ -1,7 +1,7 @@
 name: Build APK
 
 on:
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,20 +19,17 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # 修复缓存 400 错误的核心步骤（已升级 + 开启写入权限）
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
 
-      # 优化 Gradle 配置
       - name: Optimize Environment Properties
         run: |
           echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" >> gradle.properties
           echo "kotlin.allWarningsAsErrors=false" >> gradle.properties
           echo "环境防爆补丁注入成功！"
 
-      # 图标自动补丁
       - name: Patch Missing Icons
         run: |
           mkdir -p app/src/main/res/mipmap
@@ -53,12 +50,12 @@ jobs:
       - name: Grant Execute Permission for Gradle
         run: chmod +x gradlew
 
-      # 编译 APK
+      # 🚀 重点修改：增加详细日志
       - name: Build with Gradle
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --info -x lint -x test
 
-      # 上传 APK
       - name: Upload APK Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Telegram-Watch-APK
