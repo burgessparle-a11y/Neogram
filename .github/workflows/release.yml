@@ -23,41 +23,48 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
+          gradle-home-cache-cleanup: true
 
-      - name: Optimize Environment Properties
+      # ⚙️ 修正内存策略：总量控制在 4.5G，关闭并行，防止被云端系统当场击杀
+      - name: Optimize Gradle
         run: |
-          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" >> gradle.properties
-          echo "kotlin.allWarningsAsErrors=false" >> gradle.properties
-          echo "环境防爆补丁注入成功！"
+          cat >> gradle.properties << EOF
+          org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m -XX:+UseG1GC
+          kotlin.daemon.jvmargs=-Xmx1536m
+          kotlin.allWarningsAsErrors=false
+          org.gradle.parallel=false
+          org.gradle.caching=true
+          EOF
 
-      - name: Patch Missing Icons
+      - name: Patch Icons
         run: |
           mkdir -p app/src/main/res/mipmap
-          
           cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_foreground.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
             <path android:fillColor="#008577" android:pathData="M0,0h108v108h-108z"/>
           </vector>
           EOF
-          
           cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_round.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
             <path android:fillColor="#008577" android:pathData="M0,0h108v108h-108z"/>
           </vector>
           EOF
-          echo "图标补丁路径修复，注入成功！"
 
-      - name: Grant Execute Permission for Gradle
+      - name: Grant Permission
         run: chmod +x gradlew
 
-      # 🚀 重点修改：增加详细日志
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug --stacktrace --info -x lint -x test
+      # 关键：保留你很聪明的排查设计，但去掉 --info（--info 日志量太大会撑爆网页浏览器，很难翻阅）
+      - name: Compile td Module
+        run: ./gradlew :td:compileDebugKotlin --stacktrace
 
-      - name: Upload APK Artifact
+      # 真正打包：不使用 --parallel 确保老老实实排队编译，稳字当头
+      - name: Build APK
+        run: ./gradlew assembleDebug --stacktrace -x lint -x test
+
+      # 恢复通配符路径，不管它生成的 module 叫什么名字都能精准抓到
+      - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Telegram-Watch-APK
-          path: |
-            **/build/outputs/apk/debug/*.apk
+          name: Neogram-Watch-APK
+          path: "**/build/outputs/apk/debug/*.apk"
