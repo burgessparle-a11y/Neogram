@@ -11,23 +11,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: recursive # 自动拉取 tdlib 等子模块
+          submodules: recursive # 自动拉取子模块（比如 tdlib）
 
-      - name: Set up JDK 17
+      # 🔄 降级到兼容性最好的 JDK 11，专治各种 Kotlin 编译玄学报错
+      - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '11'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      # 🛠️ 核心修复步骤：自动补齐缺少的图标资源，防止报错
+      # 🛠️ 图标自动补丁步骤
       - name: Patch Missing Icons
         run: |
           mkdir -p app/src/main/res/mipmap
           
-          # 创建缺少的 ic_launcher_foreground 纯色占位图
           cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_foreground.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp"
@@ -38,7 +38,6 @@ jobs:
           </vector>
           EOF
 
-          # 创建缺少的 ic_launcher_round 纯色占位图
           cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_round.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp"
@@ -48,13 +47,14 @@ jobs:
               <path android:fillColor="#008577" android:pathData="M0,0h108v108h-108z"/>
           </vector>
           EOF
-          echo "缺少的图标补丁已成功注入！"
+          echo "图标补丁注入成功！"
 
       - name: Grant Execute Permission for Gradle
         run: chmod +x gradlew
 
+      # 🚀 编译并开启错误追踪
       - name: Build with Gradle
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
