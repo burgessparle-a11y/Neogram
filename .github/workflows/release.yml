@@ -13,7 +13,7 @@ jobs:
         with:
           submodules: recursive # 自动拉取子模块
 
-      # 🔄 回归正轨：必须使用 JDK 17 才能驱动 Gradle 8.13
+      # 使用 JDK 17 驱动 Gradle 8.13
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -23,24 +23,26 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      # ⚙️ 强力外挂：注入全局配置，加大服务器内存，强制关闭“把警告当错误”的流氓规则
+      # 优化环境配置，加大服务器内存
       - name: Optimize Environment Properties
         run: |
           echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" >> gradle.properties
           echo "kotlin.allWarningsAsErrors=false" >> gradle.properties
           echo "环境防爆补丁注入成功！"
 
-      # 🛠️ 图标自动补丁（保留之前的成功经验）
+      # 🛠️ 彻底修复路径后的图标自动补丁
       - name: Patch Missing Icons
         run: |
           mkdir -p app/src/main/res/mipmap
+          
           cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_foreground.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#008577" android:pathData="M0,0h108v108h-108z"/></vector>
           EOF
-          cat << 'EOF' > app/res/mipmap/ic_launcher_round.xml
+          
+          cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_round.xml
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#008577" android:pathData="M0,0h108v108h-108z"/></vector>
           EOF
-          echo "图标补丁注入成功！"
+          echo "图标补丁路径修复，注入成功！"
 
       - name: Grant Execute Permission for Gradle
         run: chmod +x gradlew
