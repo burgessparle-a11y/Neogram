@@ -1,7 +1,7 @@
 name: Build APK
 
 on:
-  workflow_dispatch: # 允许手动点击触发
+  workflow_dispatch: # 允许在手机网页上手动点击按钮触发编译
 
 jobs:
   build:
@@ -11,7 +11,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: recursive # 自动拉取子模块
+          submodules: recursive # 自动拉取 tdlib 等子模块
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -22,7 +22,35 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Grant Execute Permission for Gradlew
+      # 🛠️ 核心修复步骤：自动补齐缺少的图标资源，防止报错
+      - name: Patch Missing Icons
+        run: |
+          mkdir -p app/src/main/res/mipmap
+          
+          # 创建缺少的 ic_launcher_foreground 纯色占位图
+          cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_foreground.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#008577" android:pathData="M0,0h108v108h-108z"/>
+          </vector>
+          EOF
+
+          # 创建缺少的 ic_launcher_round 纯色占位图
+          cat << 'EOF' > app/src/main/res/mipmap/ic_launcher_round.xml
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#008577" android:pathData="M0,0h108v108h-108z"/>
+          </vector>
+          EOF
+          echo "缺少的图标补丁已成功注入！"
+
+      - name: Grant Execute Permission for Gradle
         run: chmod +x gradlew
 
       - name: Build with Gradle
