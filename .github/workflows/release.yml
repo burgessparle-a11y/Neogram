@@ -23,13 +23,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
-          gradle-home-cache-cleanup: true
 
-      # ⚙️ 修正内存策略：总量控制在 4.5G，关闭并行，防止被云端系统当场击杀
       - name: Optimize Gradle
         run: |
           cat >> gradle.properties << EOF
-          org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m -XX:+UseG1GC
+          org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m
           kotlin.daemon.jvmargs=-Xmx1536m
           kotlin.allWarningsAsErrors=false
           org.gradle.parallel=false
@@ -53,15 +51,12 @@ jobs:
       - name: Grant Permission
         run: chmod +x gradlew
 
-      # 关键：保留你很聪明的排查设计，但去掉 --info（--info 日志量太大会撑爆网页浏览器，很难翻阅）
       - name: Compile td Module
         run: ./gradlew :td:compileDebugKotlin --stacktrace
 
-      # 真正打包：不使用 --parallel 确保老老实实排队编译，稳字当头
       - name: Build APK
         run: ./gradlew assembleDebug --stacktrace -x lint -x test
 
-      # 恢复通配符路径，不管它生成的 module 叫什么名字都能精准抓到
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
